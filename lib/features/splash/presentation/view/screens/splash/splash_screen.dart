@@ -18,7 +18,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  static const _gradientFadeDelay = Duration(seconds: 1);
+  static const _gradientFadeDelay = Duration(microseconds: 500);
   static const _gradientFadeDuration = Duration(milliseconds: 800);
 
   Timer? _navigationTimer;
@@ -28,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigationTimer = Timer(const Duration(seconds: 5), _navigateToHome);
+    _navigationTimer = Timer(const Duration(seconds: 3), _navigateToHome);
     _gradientFadeTimer = Timer(_gradientFadeDelay, () {
       if (!mounted) {
         return;
