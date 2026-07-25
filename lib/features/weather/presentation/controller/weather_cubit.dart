@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
@@ -11,7 +12,12 @@ part 'weather_state.dart';
 class WeatherCubit extends Cubit<WeatherState> {
   WeatherCubit(this._weatherRepository) : super(const WeatherInitial());
 
+  static WeatherCubit get(BuildContext context) => BlocProvider.of(context);
+
   final WeatherRepository _weatherRepository;
+  bool isFahrenheit = false;
+  WeatherModel? weather;
+  bool isCached = false;
 
   /// The last searched locations (most recent first), for quick re-search
   /// shortcuts on the Home screen.
@@ -25,11 +31,21 @@ class WeatherCubit extends Cubit<WeatherState> {
       if (failure is NoInternetFailure) {
         final cached = _weatherRepository.getCachedWeather();
         if (cached != null) {
-          emit(WeatherSuccess(cached, isCached: true));
+          emit(const WeatherSuccess());
+          isCached = true;
           return;
         }
       }
       emit(WeatherError(failure.message));
-    }, (weather) => emit(WeatherSuccess(weather)));
+    }, (data) {
+      weather = data;
+      isCached = false;
+      emit(const WeatherSuccess());
+    });
+  }
+
+  void toggleUnit() {
+    isFahrenheit = !isFahrenheit;
+    emit(const WeatherUnitToggled());
   }
 }

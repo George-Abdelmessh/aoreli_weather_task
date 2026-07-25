@@ -16,13 +16,10 @@ class WeatherLoading extends WeatherState {
 }
 
 class WeatherSuccess extends WeatherState {
-  const WeatherSuccess(this.weather, {this.isCached = false});
-
-  final WeatherModel weather;
-  final bool isCached;
+  const WeatherSuccess();
 
   @override
-  List<Object?> get props => [weather, isCached];
+  List<Object?> get props => [];
 }
 
 class WeatherError extends WeatherState {
@@ -32,4 +29,8 @@ class WeatherError extends WeatherState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class WeatherUnitToggled extends WeatherState {
+  const WeatherUnitToggled();
 }

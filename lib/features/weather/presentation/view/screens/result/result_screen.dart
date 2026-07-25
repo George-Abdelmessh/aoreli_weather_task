@@ -1,3 +1,4 @@
+import 'package:aoreli_weather/core/utils/screen_size.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,21 +6,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../../core/config/themes/app_colors.dart';
 import '../../../../../../core/config/themes/app_padding.dart';
 import '../../../../../../core/helpers/app_navigator.dart';
-import '../../../../../shared/custom_widgets/cutom_input.dart';
 import '../../../../data/models/weather_model.dart';
-import '../../../../data/params/get_weather_params.dart';
 import '../../../controller/weather_cubit.dart';
 import '../../shared_widgets/screen_header.dart';
 import '../error/error_screen.dart';
 import 'widgets/detail_item.dart';
 import 'widgets/offline_cache_banner.dart';
-import 'widgets/result_skeleton.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/unit_toggle.dart';
 
-/// Shows the fetch-in-progress skeleton and, once it resolves, the weather
-/// for [city]. Reached via [AppNavigator.push] from Search; redirects to
-/// [ErrorScreen] (replacing itself) if the fetch fails.
+
 class ResultScreen extends StatefulWidget {
   const ResultScreen({required this.city, super.key});
 
@@ -30,26 +26,8 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
-  late final _searchController = TextEditingController(text: widget.city);
-  bool _isFahrenheit = false;
+  late final _weatherCubit = WeatherCubit.get(context);
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _search(String city) {
-    final trimmed = city.trim();
-    if (trimmed.isEmpty) {
-      return;
-    }
-    context.read<WeatherCubit>().fetchWeather(GetWeatherParams(city: trimmed));
-  }
-
-  void _toggleUnit() {
-    setState(() => _isFahrenheit = !_isFahrenheit);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,10 +36,7 @@ class _ResultScreenState extends State<ResultScreen> {
         if (state is WeatherError) {
           AppNavigator.pushReplacement(
             context: context,
-            screen: ErrorScreen(
-              city: _searchController.text,
-              message: state.message,
-            ),
+            screen: ErrorScreen(city: widget.city, message: state.message),
           );
         }
       },
@@ -69,7 +44,7 @@ class _ResultScreenState extends State<ResultScreen> {
         final gradient = state is WeatherSuccess
             ? AppColors.backgroundGradient(
                 WeatherCondition.fromApiText(
-                  state.weather.current.condition.text,
+                  _weatherCubit.weather?.current.condition.text ?? '',
                 ),
               )
             : AppColors.loadingGradient;
@@ -86,16 +61,14 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
             ),
             child: SafeArea(
-              child: state is WeatherSuccess
-                  ? _ResultBody(
-                      weather: state.weather,
-                      isCached: state.isCached,
-                      controller: _searchController,
-                      onSearch: _search,
-                      isFahrenheit: _isFahrenheit,
-                      onToggleUnit: _toggleUnit,
+              child: state is WeatherSuccess || state is WeatherUnitToggled ?
+                   _ResultBody(
+                      weather: _weatherCubit.weather!,
+                      isCached: _weatherCubit.isCached,
+                      isFahrenheit: _weatherCubit.isFahrenheit,
+                      onToggleUnit: _weatherCubit.toggleUnit,
                     )
-                  : _ResultLoadingBody(controller: _searchController),
+                  : const Center(child: CircularProgressIndicator()),
             ),
           ),
         );
@@ -104,66 +77,9 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 }
 
-class _ResultLoadingBody extends StatelessWidget {
-  const _ResultLoadingBody({required this.controller});
-
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final city = controller.text.trim();
-
-    return SingleChildScrollView(
-      padding: AppPadding.screenBody,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ScreenHeader(onBack: () => AppNavigator.pop(context: context)),
-          const SizedBox(height: 16),
-          CustomInput(controller: controller, onSubmitted: (_) {}),
-          const SizedBox(height: 24),
-          Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.wb_sunny_outlined,
-                  size: 48,
-                  color: AppColors.tertiaryDark.withValues(alpha: 0.7),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  city.isEmpty
-                      ? 'Checking the weather...'
-                      : 'Checking the weather in $city...',
-                  textAlign: TextAlign.center,
-                  style: textTheme.titleMedium?.copyWith(
-                    color: AppColors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'This should only take a moment.',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.outline,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          const ResultSkeleton(),
-        ],
-      ),
-    );
-  }
-}
-
 class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.weather,
-    required this.controller,
-    required this.onSearch,
     required this.isFahrenheit,
     required this.onToggleUnit,
     this.isCached = false,
@@ -171,8 +87,6 @@ class _ResultBody extends StatelessWidget {
 
   final WeatherModel weather;
   final bool isCached;
-  final TextEditingController controller;
-  final ValueChanged<String> onSearch;
   final bool isFahrenheit;
   final VoidCallback onToggleUnit;
 
@@ -247,7 +161,6 @@ class _ResultBody extends StatelessWidget {
     return SingleChildScrollView(
       padding: AppPadding.screenBody,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ScreenHeader(
             onBack: () => AppNavigator.pop(context: context),
@@ -257,37 +170,43 @@ class _ResultBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          CustomInput(controller: controller, onSubmitted: onSearch),
           if (isCached) ...[
             const SizedBox(height: 12),
             const OfflineCacheBanner(),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Text(
             [
               weather.location.name,
               weather.location.region,
               weather.location.country,
             ].where((s) => s.isNotEmpty).join(', '),
-            style: textTheme.titleLarge?.copyWith(color: AppColors.onSurface),
+            style: textTheme.titleLarge?.copyWith(
+              color: AppColors.onSurface,
+              fontWeight: FontWeight.w500,
+              fontSize: ScreenSize.fontScale(context, 22),
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             _formatDateHeading(weather.location.localtime),
             style: textTheme.labelSmall?.copyWith(
-              color: AppColors.outline,
+              color: AppColors.onSurfaceVariant,
+              fontWeight: FontWeight.w200,
+              fontSize: ScreenSize.fontScale(context, 14),
               letterSpacing: 1,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 '${_displayTemp.round()}°',
                 style: textTheme.displayMedium?.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
+                  fontSize: ScreenSize.fontScale(context, 48),
                 ),
               ),
               Padding(
@@ -295,14 +214,16 @@ class _ResultBody extends StatelessWidget {
                 child: Text(
                   isFahrenheit ? 'F' : 'C',
                   style: textTheme.titleMedium?.copyWith(
+                    fontSize: ScreenSize.fontScale(context, 22),
                     color: AppColors.primary,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CachedNetworkImage(
                 imageUrl: weather.current.condition.iconUrl,
@@ -315,6 +236,7 @@ class _ResultBody extends StatelessWidget {
                 weather.current.condition.text,
                 style: textTheme.titleMedium?.copyWith(
                   color: AppColors.onSurface,
+                  fontSize: ScreenSize.fontScale(context, 16),
                 ),
               ),
             ],
@@ -323,7 +245,10 @@ class _ResultBody extends StatelessWidget {
           Text(
             'Feels like ${_displayFeelsLike.round()}$_unitSuffix • '
             'Updated at ${_formatTime(weather.current.lastUpdated)}',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.outline,
+              fontSize: ScreenSize.fontScale(context, 14),
+            ),
           ),
           const SizedBox(height: 24),
           Row(
