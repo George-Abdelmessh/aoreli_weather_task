@@ -15,7 +15,6 @@ import '../../../controller/weather_cubit.dart';
 import '../result/result_screen.dart';
 import 'widgets/recent_search_tile.dart';
 
-
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -35,9 +34,11 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _search(String city) {
-    if (!_formKey.currentState!.validate()) {
+    if (city.isEmpty) {
+      _formKey.currentState!.validate();
       return;
     }
+    _searchController.text = city.trim();
     context.read<WeatherCubit>().fetchWeather(
       GetWeatherParams(city: city.trim()),
     );
