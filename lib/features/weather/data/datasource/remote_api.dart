@@ -22,9 +22,9 @@ class RemoteApi implements WeatherRepository {
     required BaseApiService apiService,
     required NetworkInfo networkInfo,
     required LocalData localData,
-  })  : _apiService = apiService,
-        _networkInfo = networkInfo,
-        _localData = localData;
+  }) : _apiService = apiService,
+       _networkInfo = networkInfo,
+       _localData = localData;
 
   final BaseApiService _apiService;
   final NetworkInfo _networkInfo;

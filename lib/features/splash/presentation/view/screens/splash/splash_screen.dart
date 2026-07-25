@@ -2,13 +2,10 @@ import 'dart:async';
 
 import 'package:aoreli_weather/core/utils/screen_size.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../../core/config/themes/app_colors.dart';
-import '../../../../../../core/di/service_locator.dart';
 import '../../../../../../core/helpers/app_navigator.dart';
-import '../../../../../weather/presentation/controller/weather_cubit.dart';
-import '../../../../../weather/presentation/view/screens/weather/weather_screen.dart';
+import '../../../../../weather/presentation/view/screens/search/search_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -43,10 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
     AppNavigator.pushReplacement(
       context: context,
-      screen: BlocProvider<WeatherCubit>(
-        create: (_) => sl<WeatherCubit>(),
-        child: const WeatherScreen(),
-      ),
+      screen: const SearchScreen(),
     );
   }
 

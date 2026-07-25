@@ -10,7 +10,7 @@ import '../models/weather_model.dart';
 /// implementation) calls into this after a successful fetch.
 class LocalData {
   LocalData({required SharedPreferencesService sharedPreferencesService})
-      : _sharedPreferencesService = sharedPreferencesService;
+    : _sharedPreferencesService = sharedPreferencesService;
 
   final SharedPreferencesService _sharedPreferencesService;
 
@@ -62,9 +62,7 @@ class LocalData {
     final label = _recentSearchLabel(weather);
 
     final recent = getRecentSearches()
-      ..removeWhere(
-        (existing) => existing.toLowerCase() == label.toLowerCase(),
-      )
+      ..removeWhere((existing) => existing.toLowerCase() == label.toLowerCase())
       ..insert(0, label);
 
     await _sharedPreferencesService.saveData(

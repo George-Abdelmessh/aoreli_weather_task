@@ -4,21 +4,19 @@ class WeatherModel extends Equatable {
   const WeatherModel({required this.location, required this.current});
 
   factory WeatherModel.fromJson(Map<String, dynamic> json) => WeatherModel(
-        location: WeatherLocation.fromJson(
-          json['location'] as Map<String, dynamic>,
-        ),
-        current: WeatherCurrent.fromJson(
-          json['current'] as Map<String, dynamic>,
-        ),
-      );
+    location: WeatherLocation.fromJson(
+      json['location'] as Map<String, dynamic>,
+    ),
+    current: WeatherCurrent.fromJson(json['current'] as Map<String, dynamic>),
+  );
 
   final WeatherLocation location;
   final WeatherCurrent current;
 
   Map<String, dynamic> toJson() => {
-        'location': location.toJson(),
-        'current': current.toJson(),
-      };
+    'location': location.toJson(),
+    'current': current.toJson(),
+  };
 
   @override
   List<Object?> get props => [location, current];
@@ -46,11 +44,11 @@ class WeatherLocation extends Equatable {
   final DateTime localtime;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'region': region,
-        'country': country,
-        'localtime': _formatDateTime(localtime),
-      };
+    'name': name,
+    'region': region,
+    'country': country,
+    'localtime': _formatDateTime(localtime),
+  };
 
   @override
   List<Object?> get props => [name, region, country, localtime];
@@ -78,29 +76,28 @@ class WeatherCurrent extends Equatable {
     required this.chanceOfRain,
   });
 
-  factory WeatherCurrent.fromJson(Map<String, dynamic> json) =>
-      WeatherCurrent(
-        lastUpdated: _parseDateTime(json['last_updated'] as String),
-        tempC: (json['temp_c'] as num).toDouble(),
-        feelslikeC: (json['feelslike_c'] as num).toDouble(),
-        condition: CurrentCondition.fromJson(
-          json['condition'] as Map<String, dynamic>,
-        ),
-        humidity: json['humidity'] as int,
-        windKph: (json['wind_kph'] as num).toDouble(),
-        windDir: json['wind_dir'] as String,
-        windDegree: json['wind_degree'] as int,
-        gustKph: (json['gust_kph'] as num).toDouble(),
-        uv: (json['uv'] as num).toDouble(),
-        pressureMb: (json['pressure_mb'] as num).toDouble(),
-        precipMm: (json['precip_mm'] as num).toDouble(),
-        cloud: json['cloud'] as int,
-        heatindexC: (json['heatindex_c'] as num).toDouble(),
-        windchillC: (json['windchill_c'] as num).toDouble(),
-        visKm: (json['vis_km'] as num).toDouble(),
-        dewpointC: (json['dewpoint_c'] as num).toDouble(),
-        chanceOfRain: json['chance_of_rain'] as int,
-      );
+  factory WeatherCurrent.fromJson(Map<String, dynamic> json) => WeatherCurrent(
+    lastUpdated: _parseDateTime(json['last_updated'] as String),
+    tempC: (json['temp_c'] as num).toDouble(),
+    feelslikeC: (json['feelslike_c'] as num).toDouble(),
+    condition: CurrentCondition.fromJson(
+      json['condition'] as Map<String, dynamic>,
+    ),
+    humidity: json['humidity'] as int,
+    windKph: (json['wind_kph'] as num).toDouble(),
+    windDir: json['wind_dir'] as String,
+    windDegree: json['wind_degree'] as int,
+    gustKph: (json['gust_kph'] as num).toDouble(),
+    uv: (json['uv'] as num).toDouble(),
+    pressureMb: (json['pressure_mb'] as num).toDouble(),
+    precipMm: (json['precip_mm'] as num).toDouble(),
+    cloud: json['cloud'] as int,
+    heatindexC: (json['heatindex_c'] as num).toDouble(),
+    windchillC: (json['windchill_c'] as num).toDouble(),
+    visKm: (json['vis_km'] as num).toDouble(),
+    dewpointC: (json['dewpoint_c'] as num).toDouble(),
+    chanceOfRain: json['chance_of_rain'] as int,
+  );
 
   final DateTime lastUpdated;
   final double tempC;
@@ -122,47 +119,47 @@ class WeatherCurrent extends Equatable {
   final int chanceOfRain;
 
   Map<String, dynamic> toJson() => {
-        'last_updated': _formatDateTime(lastUpdated),
-        'temp_c': tempC,
-        'feelslike_c': feelslikeC,
-        'condition': condition.toJson(),
-        'humidity': humidity,
-        'wind_kph': windKph,
-        'wind_dir': windDir,
-        'wind_degree': windDegree,
-        'gust_kph': gustKph,
-        'uv': uv,
-        'pressure_mb': pressureMb,
-        'precip_mm': precipMm,
-        'cloud': cloud,
-        'heatindex_c': heatindexC,
-        'windchill_c': windchillC,
-        'vis_km': visKm,
-        'dewpoint_c': dewpointC,
-        'chance_of_rain': chanceOfRain,
-      };
+    'last_updated': _formatDateTime(lastUpdated),
+    'temp_c': tempC,
+    'feelslike_c': feelslikeC,
+    'condition': condition.toJson(),
+    'humidity': humidity,
+    'wind_kph': windKph,
+    'wind_dir': windDir,
+    'wind_degree': windDegree,
+    'gust_kph': gustKph,
+    'uv': uv,
+    'pressure_mb': pressureMb,
+    'precip_mm': precipMm,
+    'cloud': cloud,
+    'heatindex_c': heatindexC,
+    'windchill_c': windchillC,
+    'vis_km': visKm,
+    'dewpoint_c': dewpointC,
+    'chance_of_rain': chanceOfRain,
+  };
 
   @override
   List<Object?> get props => [
-        lastUpdated,
-        tempC,
-        feelslikeC,
-        condition,
-        humidity,
-        windKph,
-        windDir,
-        windDegree,
-        gustKph,
-        uv,
-        pressureMb,
-        precipMm,
-        cloud,
-        heatindexC,
-        windchillC,
-        visKm,
-        dewpointC,
-        chanceOfRain,
-      ];
+    lastUpdated,
+    tempC,
+    feelslikeC,
+    condition,
+    humidity,
+    windKph,
+    windDir,
+    windDegree,
+    gustKph,
+    uv,
+    pressureMb,
+    precipMm,
+    cloud,
+    heatindexC,
+    windchillC,
+    visKm,
+    dewpointC,
+    chanceOfRain,
+  ];
 }
 
 /// Named `CurrentCondition` (not `WeatherCondition`) to avoid clashing with
