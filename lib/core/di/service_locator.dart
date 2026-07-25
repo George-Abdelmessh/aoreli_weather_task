@@ -3,9 +3,9 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/weather/data/datasource/local_data.dart';
 import '../../features/weather/data/datasource/remote_api.dart';
 import '../../features/weather/data/repositories/weather_repository.dart';
-import '../../features/weather/data/repositories_implementation/weather_repository_implementation.dart';
 import '../../features/weather/presentation/controller/weather_cubit.dart';
 import '../api/base_api_service.dart';
 import '../api/dio_api_service.dart';
@@ -23,10 +23,14 @@ Future<void> initServiceLocator() async {
       () => WeatherCubit(weatherRepository: sl()),
     )
     ..registerLazySingleton<WeatherRepository>(
-      () => WeatherRepositoryImplementation(
-        remoteApi: RemoteApi(apiService: sl(), networkInfo: sl()),
-        sharedPreferencesService: sl(),
+      () => RemoteApi(
+        apiService: sl(),
+        networkInfo: sl(),
+        localData: sl(),
       ),
+    )
+    ..registerLazySingleton<LocalData>(
+      () => LocalData(sharedPreferencesService: sl()),
     )
     //! Core
     ..registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()))
