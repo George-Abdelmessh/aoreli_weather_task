@@ -7,7 +7,33 @@ enum WeatherCondition {
   partlyCloudy,
   cloudy,
   overcast,
-  moderateRain,
+  moderateRain;
+
+  /// Maps a free-text condition (e.g. weatherapi.com's `condition.text`,
+  /// such as "Sunny", "Patchy rain possible") to the closest
+  /// [WeatherCondition] the design has a gradient for.
+  factory WeatherCondition.fromApiText(String text) {
+    final normalized = text.toLowerCase();
+
+    if (normalized.contains('rain') ||
+        normalized.contains('drizzle') ||
+        normalized.contains('thunder') ||
+        normalized.contains('storm')) {
+      return WeatherCondition.moderateRain;
+    }
+    if (normalized.contains('overcast')) {
+      return WeatherCondition.overcast;
+    }
+    if (normalized.contains('partly') || normalized.contains('patchy')) {
+      return WeatherCondition.partlyCloudy;
+    }
+    if (normalized.contains('cloud') ||
+        normalized.contains('fog') ||
+        normalized.contains('mist')) {
+      return WeatherCondition.cloudy;
+    }
+    return WeatherCondition.clear;
+  }
 }
 
 /// Single source of truth for colors, extracted from the Figma design

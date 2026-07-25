@@ -48,7 +48,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        hintStyle: textTheme.xbodyMedium?.copyWith(
+        hintStyle: textTheme.bodyMedium?.copyWith(
           color: AppColors.onSurfaceVariant,
         ),
       ),

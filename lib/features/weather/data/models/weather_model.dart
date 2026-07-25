@@ -7,8 +7,18 @@ class WeatherModel {
   });
 
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
-    // TODO: map API response (city name, temp, condition text, icon url)
-    throw UnimplementedError();
+    final location = json['location'] as Map<String, dynamic>;
+    final current = json['current'] as Map<String, dynamic>;
+    final condition = current['condition'] as Map<String, dynamic>;
+    final iconPath = condition['icon'] as String;
+
+    return WeatherModel(
+      cityName: location['name'] as String,
+      temperature: (current['temp_c'] as num).toDouble(),
+      conditionText: condition['text'] as String,
+      conditionIconUrl:
+          iconPath.startsWith('http') ? iconPath : 'https:$iconPath',
+    );
   }
 
   final String cityName;
@@ -17,7 +27,12 @@ class WeatherModel {
   final String conditionIconUrl;
 
   Map<String, dynamic> toJson() {
-    // TODO: map fields back to JSON
-    throw UnimplementedError();
+    return {
+      'location': {'name': cityName},
+      'current': {
+        'temp_c': temperature,
+        'condition': {'text': conditionText, 'icon': conditionIconUrl},
+      },
+    };
   }
 }

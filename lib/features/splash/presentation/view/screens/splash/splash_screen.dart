@@ -75,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 6),
               Text(
                 'a weather app',
-                style: textTheme.xbodyMedium?.copyWith(
+                style: textTheme.bodyMedium?.copyWith(
                   color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
               ),
