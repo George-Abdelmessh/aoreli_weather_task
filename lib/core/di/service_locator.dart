@@ -5,23 +5,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/weather/data/datasource/remote_api.dart';
 import '../../features/weather/data/repositories/weather_repository.dart';
+import '../../features/weather/data/repositories_implementation/weather_repository_implementation.dart';
 import '../../features/weather/presentation/controller/weather_cubit.dart';
 import '../api/base_api_service.dart';
 import '../api/dio_api_service.dart';
+import '../cache/shared_preferences_service.dart';
 import '../connection/network_info.dart';
 
 final sl = GetIt.instance;
 
 Future<void> initServiceLocator() async {
+  final sharedPreferences = await SharedPreferences.getInstance();
+
   sl
     //! Features (repository, then implementation, per feature)
     ..registerFactory<WeatherCubit>(
       () => WeatherCubit(weatherRepository: sl()),
     )
     ..registerLazySingleton<WeatherRepository>(
-      () => RemoteApi(
-        apiService: sl(),
-        networkInfo: sl(),
+      () => WeatherRepositoryImplementation(
+        remoteApi: RemoteApi(apiService: sl(), networkInfo: sl()),
+        sharedPreferencesService: sl(),
       ),
     )
     //! Core
@@ -29,10 +33,11 @@ Future<void> initServiceLocator() async {
     ..registerLazySingleton<BaseApiService>(
       () => DioApiService(dioClient: sl<Dio>()),
     )
+    ..registerLazySingleton<SharedPreferencesService>(
+      () => SharedPreferencesService(sl()),
+    )
     //! External
     ..registerLazySingleton<Connectivity>(Connectivity.new)
-    ..registerLazySingleton<Dio>(Dio.new);
-
-  // TODO: register SharedPreferencesService once available, per CLAUDE.md order
-  await SharedPreferences.getInstance();
+    ..registerLazySingleton<Dio>(Dio.new)
+    ..registerLazySingleton<SharedPreferences>(() => sharedPreferences);
 }

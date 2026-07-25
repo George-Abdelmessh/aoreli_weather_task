@@ -45,7 +45,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
         final gradient = state.when(
           initial: () => AppColors.splashGradient,
           loading: () => AppColors.loadingGradient,
-          success: (weather) => AppColors.backgroundGradient(
+          success: (weather, isCached) => AppColors.backgroundGradient(
             WeatherCondition.fromApiText(weather.conditionText),
           ),
           error: (_) => AppColors.errorGradient,
@@ -64,19 +64,20 @@ class _WeatherScreenState extends State<WeatherScreen> {
             ),
             child: SafeArea(
               child: state.when(
-                initial: () => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: _HomeContent(
-                    controller: _searchController,
-                    onSearch: _search,
-                  ),
+                initial: () => _HomeContent(
+                  controller: _searchController,
+                  onSearch: _search,
+                  recentSearches: context
+                      .read<WeatherCubit>()
+                      .getRecentSearches(),
                 ),
                 loading: () => _LoadingContent(
                   controller: _searchController,
                   onSearch: _search,
                 ),
-                success: (weather) => _WeatherResultContent(
+                success: (weather, isCached) => _WeatherResultContent(
                   weather: weather,
+                  isCached: isCached,
                   controller: _searchController,
                   onSearch: _search,
                   isFahrenheit: _isFahrenheit,
@@ -100,91 +101,173 @@ class _WeatherScreenState extends State<WeatherScreen> {
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.controller, required this.onSearch});
+  const _HomeContent({
+    required this.controller,
+    required this.onSearch,
+    this.recentSearches = const [],
+  });
 
   final TextEditingController controller;
   final ValueChanged<String> onSearch;
+  final List<String> recentSearches;
+
+  /// A recent-search label is stored as "City, Country" — re-search using
+  /// just the city part.
+  static String _cityFromLabel(String label) => label.split(',').first.trim();
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Column(
-      children: [
-        const SizedBox(height: 24),
-        Text(
-          'Aoreli',
-          style: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
-          ),
-        ),
-        Text(
-          'a weather app',
-          style: textTheme.bodySmall?.copyWith(
-            color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
-          ),
-        ),
-        const Spacer(),
-        Icon(
-          Icons.wb_sunny_outlined,
-          size: 64,
-          color: AppColors.onSurfaceVariant.withValues(alpha: 0.4),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'Transform meteorological data\ninto atmospheric serenity.',
-          textAlign: TextAlign.center,
-          style: textTheme.bodyMedium?.copyWith(
-            color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
-          ),
-        ),
-        const Spacer(),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Your Location',
-            style: textTheme.labelMedium?.copyWith(
-              color: AppColors.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: Column(
+          children: [
+            Text(
+              'Aoreli',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        WeatherSearchField(controller: controller, onSubmitted: onSearch),
-        const SizedBox(height: 8),
-        Text(
-          'TRY CAIRO, ALEXANDRIA, OR LONDON',
-          style: textTheme.labelSmall?.copyWith(
-            color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => onSearch(controller.text),
-            child: const Text('View weather'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Location search isn't available yet."),
+            Text(
+              'a weather app',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 40),
+            Icon(
+              Icons.wb_sunny_outlined,
+              size: 64,
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Transform meteorological data\ninto atmospheric serenity.',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 40),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Your Location',
+                style: textTheme.labelMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
                 ),
-              );
-            },
-            icon: const Icon(Icons.near_me_outlined, size: 18),
-            label: const Text('Use my location'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            WeatherSearchField(controller: controller, onSubmitted: onSearch),
+            const SizedBox(height: 8),
+            Text(
+              'TRY CAIRO, ALEXANDRIA, OR LONDON',
+              style: textTheme.labelSmall?.copyWith(
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => onSearch(controller.text),
+                child: const Text('View weather'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Location search isn't available yet."),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.near_me_outlined, size: 18),
+                label: const Text('Use my location'),
+              ),
+            ),
+            if (recentSearches.isNotEmpty) ...[
+              const SizedBox(height: 28),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'RECENT SEARCHES',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                    letterSpacing: 1,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final label in recentSearches) ...[
+                _RecentSearchTile(
+                  label: label,
+                  onTap: () => onSearch(_cityFromLabel(label)),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentSearchTile extends StatelessWidget {
+  const _RecentSearchTile({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: Colors.white.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.history,
+                size: 18,
+                color: AppColors.outline,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.outline,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 24),
-      ],
+      ),
     );
   }
 }
@@ -540,9 +623,11 @@ class _WeatherResultContent extends StatelessWidget {
     required this.onSearch,
     required this.isFahrenheit,
     required this.onToggleUnit,
+    this.isCached = false,
   });
 
   final WeatherModel weather;
+  final bool isCached;
   final TextEditingController controller;
   final ValueChanged<String> onSearch;
   final bool isFahrenheit;
@@ -645,6 +730,10 @@ class _WeatherResultContent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             WeatherSearchField(controller: controller, onSubmitted: onSearch),
+            if (isCached) ...[
+              const SizedBox(height: 12),
+              const _OfflineCacheBanner(),
+            ],
             const SizedBox(height: 20),
             Text(
               [
@@ -1021,6 +1110,46 @@ class _DetailItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Shown above the weather card when the displayed data came from the
+/// offline cache instead of a fresh API response.
+class _OfflineCacheBanner extends StatelessWidget {
+  const _OfflineCacheBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.onTertiaryContainer.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 16,
+              color: AppColors.onTertiaryContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "Showing last saved result — you're offline",
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.onTertiaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -51,4 +51,12 @@ class RemoteApi implements WeatherRepository {
       return Left(ApiErrorHandler.handle(error));
     }
   }
+
+  /// The remote datasource has no cache of its own — caching is layered on
+  /// top by `WeatherRepositoryImplementation`.
+  @override
+  WeatherModel? getCachedWeather() => null;
+
+  @override
+  List<String> getRecentSearches() => [];
 }
