@@ -75,8 +75,8 @@ class LocalData {
 
   String _recentSearchLabel(WeatherModel weather) {
     return [
-      weather.cityName,
-      weather.country,
+      weather.location.name,
+      weather.location.country,
     ].where((s) => s.isNotEmpty).join(', ');
   }
 }

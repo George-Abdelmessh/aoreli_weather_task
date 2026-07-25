@@ -49,7 +49,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
           initial: () => AppColors.splashGradient,
           loading: () => AppColors.loadingGradient,
           success: (weather, isCached) => AppColors.backgroundGradient(
-            WeatherCondition.fromApiText(weather.conditionText),
+            WeatherCondition.fromApiText(weather.current.condition.text),
           ),
           error: (_) => AppColors.errorGradient,
         );
@@ -707,11 +707,13 @@ class _WeatherResultContent extends StatelessWidget {
     'December',
   ];
 
-  double get _displayTemp =>
-      isFahrenheit ? weather.temperatureC * 9 / 5 + 32 : weather.temperatureC;
+  double get _displayTemp => isFahrenheit
+      ? weather.current.tempC * 9 / 5 + 32
+      : weather.current.tempC;
 
-  double get _displayFeelsLike =>
-      isFahrenheit ? weather.feelsLikeC * 9 / 5 + 32 : weather.feelsLikeC;
+  double get _displayFeelsLike => isFahrenheit
+      ? weather.current.feelslikeC * 9 / 5 + 32
+      : weather.current.feelslikeC;
 
   String get _unitSuffix => isFahrenheit ? '°F' : '°C';
 
@@ -783,15 +785,15 @@ class _WeatherResultContent extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               [
-                weather.cityName,
-                weather.region,
-                weather.country,
+                weather.location.name,
+                weather.location.region,
+                weather.location.country,
               ].where((s) => s.isNotEmpty).join(', '),
               style: textTheme.titleLarge?.copyWith(color: AppColors.onSurface),
             ),
             const SizedBox(height: 2),
             Text(
-              _formatDateHeading(weather.localTime),
+              _formatDateHeading(weather.location.localtime),
               style: textTheme.labelSmall?.copyWith(
                 color: AppColors.outline,
                 letterSpacing: 1,
@@ -823,14 +825,14 @@ class _WeatherResultContent extends StatelessWidget {
             Row(
               children: [
                 CachedNetworkImage(
-                  imageUrl: weather.conditionIconUrl,
+                  imageUrl: weather.current.condition.iconUrl,
                   width: 24,
                   height: 24,
                   errorWidget: (context, url, error) => const SizedBox.shrink(),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  weather.conditionText,
+                  weather.current.condition.text,
                   style: textTheme.titleMedium?.copyWith(
                     color: AppColors.onSurface,
                   ),
@@ -840,7 +842,7 @@ class _WeatherResultContent extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Feels like ${_displayFeelsLike.round()}$_unitSuffix • '
-              'Updated at ${_formatTime(weather.lastUpdated)}',
+              'Updated at ${_formatTime(weather.current.lastUpdated)}',
               style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
             ),
             const SizedBox(height: 24),
@@ -850,10 +852,10 @@ class _WeatherResultContent extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.water_drop_outlined,
                     label: 'HUMIDITY',
-                    value: '${weather.humidity}%',
+                    value: '${weather.current.humidity}%',
                     caption:
-                        'The dew point is ${weather.dewPointC.round()}° '
-                        'right now.',
+                        'The dew point is '
+                        '${weather.current.dewpointC.round()}° right now.',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -861,9 +863,11 @@ class _WeatherResultContent extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.air,
                     label: 'WIND',
-                    value: weather.windKph.toStringAsFixed(1),
-                    valueSuffix: 'KM/H ${weather.windDir}',
-                    caption: 'Gusts up to ${weather.gustKph.round()} km/h.',
+                    value: weather.current.windKph.toStringAsFixed(1),
+                    valueSuffix: 'KM/H ${weather.current.windDir}',
+                    caption:
+                        'Gusts up to ${weather.current.gustKph.round()} '
+                        'km/h.',
                   ),
                 ),
               ],
@@ -875,9 +879,9 @@ class _WeatherResultContent extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.wb_sunny_outlined,
                     label: 'UV INDEX',
-                    value: weather.uv.toStringAsFixed(1),
-                    valueSuffix: _uvLabel(weather.uv),
-                    caption: weather.uv >= 3
+                    value: weather.current.uv.toStringAsFixed(1),
+                    valueSuffix: _uvLabel(weather.current.uv),
+                    caption: weather.current.uv >= 3
                         ? 'Use sun protection if outdoors.'
                         : 'Minimal risk right now.',
                   ),
@@ -887,7 +891,7 @@ class _WeatherResultContent extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.speed_outlined,
                     label: 'PRESSURE',
-                    value: weather.pressureMb.round().toString(),
+                    value: weather.current.pressureMb.round().toString(),
                     valueSuffix: 'MB',
                     caption: 'Current barometric pressure.',
                   ),
@@ -919,14 +923,14 @@ class _WeatherResultContent extends StatelessWidget {
                         Expanded(
                           child: _DetailItem(
                             label: 'WIND DIRECTION',
-                            value:
-                                '${weather.windDir} (${weather.windDegree}°)',
+                            value: '${weather.current.windDir} '
+                                '(${weather.current.windDegree}°)',
                           ),
                         ),
                         Expanded(
                           child: _DetailItem(
                             label: 'PRECIPITATION',
-                            value: '${weather.precipMm} mm',
+                            value: '${weather.current.precipMm} mm',
                           ),
                         ),
                       ],
@@ -937,13 +941,13 @@ class _WeatherResultContent extends StatelessWidget {
                         Expanded(
                           child: _DetailItem(
                             label: 'CLOUD COVER',
-                            value: '${weather.cloud}%',
+                            value: '${weather.current.cloud}%',
                           ),
                         ),
                         Expanded(
                           child: _DetailItem(
                             label: 'RAIN CHANCE',
-                            value: '${weather.chanceOfRain}%',
+                            value: '${weather.current.chanceOfRain}%',
                           ),
                         ),
                       ],
@@ -954,13 +958,13 @@ class _WeatherResultContent extends StatelessWidget {
                         Expanded(
                           child: _DetailItem(
                             label: 'HEAT INDEX',
-                            value: '${weather.heatIndexC.round()}°C',
+                            value: '${weather.current.heatindexC.round()}°C',
                           ),
                         ),
                         Expanded(
                           child: _DetailItem(
                             label: 'WIND CHILL',
-                            value: '${weather.windChillC.round()}°C',
+                            value: '${weather.current.windchillC.round()}°C',
                           ),
                         ),
                       ],
@@ -971,13 +975,13 @@ class _WeatherResultContent extends StatelessWidget {
                         Expanded(
                           child: _DetailItem(
                             label: 'VISIBILITY',
-                            value: '${weather.visKm.round()} km',
+                            value: '${weather.current.visKm.round()} km',
                           ),
                         ),
                         Expanded(
                           child: _DetailItem(
                             label: 'DEW POINT',
-                            value: '${weather.dewPointC.round()}°C',
+                            value: '${weather.current.dewpointC.round()}°C',
                           ),
                         ),
                       ],
