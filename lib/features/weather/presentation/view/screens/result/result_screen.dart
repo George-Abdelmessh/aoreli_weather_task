@@ -1,0 +1,411 @@
+import 'package:aoreli_weather/core/utils/screen_size.dart';
+import 'package:aoreli_weather/features/weather/data/params/get_weather_params.dart';
+import 'package:aoreli_weather/features/weather/presentation/view/screens/result/widgets/search_error_widget.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../../../core/config/themes/app_colors.dart';
+import '../../../../../../core/config/themes/app_padding.dart';
+import '../../../../../../core/helpers/app_navigator.dart';
+import '../../../../data/models/weather_model.dart';
+import '../../../controller/weather_cubit.dart';
+import '../../shared_widgets/screen_header.dart';
+import 'widgets/detail_item.dart';
+import 'widgets/offline_cache_banner.dart';
+import 'widgets/stat_card.dart';
+import 'widgets/unit_toggle.dart';
+
+class ResultScreen extends StatefulWidget {
+  const ResultScreen({required this.city, super.key});
+
+  final String city;
+
+  @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> {
+  List<Color> _getWeatherGradientColor() {
+    if (context.read<WeatherCubit>().weather == null) {
+      return AppColors.loadingGradient;
+    }
+    return AppColors.backgroundGradient(
+      WeatherCondition.fromApiText(
+        context.read<WeatherCubit>().weather?.current.condition.text ?? '',
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<WeatherCubit, WeatherState>(
+      builder: (context, state) {
+        return Scaffold(
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: _getWeatherGradientColor(),
+              ),
+            ),
+            child: SafeArea(
+              child: Builder(
+                builder: (context) {
+                  if (state is WeatherError) {
+                    return SearchErrorWidget(
+                      message: state.message,
+                      onTryAgainPressed: () =>
+                          context.read<WeatherCubit>().fetchWeather(
+                            GetWeatherParams(city: widget.city.trim()),
+                          ),
+                    );
+                  } else if (state is WeatherSuccess ||
+                      state is WeatherUnitToggled ||
+                      state is WeatherUnitToggling) {
+                    return _ResultBody(
+                      weather: context.read<WeatherCubit>().weather!,
+                      isCached: context.read<WeatherCubit>().isCached,
+                      isFahrenheit: context.read<WeatherCubit>().isFahrenheit,
+                      onToggleUnit: context.read<WeatherCubit>().toggleUnit,
+                    );
+                  } else {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ResultBody extends StatelessWidget {
+  const _ResultBody({
+    required this.weather,
+    required this.isFahrenheit,
+    required this.onToggleUnit,
+    this.isCached = false,
+  });
+
+  final WeatherModel weather;
+  final bool isCached;
+  final bool isFahrenheit;
+  final VoidCallback onToggleUnit;
+
+  static const List<String> _weekdays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  static const List<String> _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  double get _displayTemp =>
+      isFahrenheit ? weather.current.tempC * 9 / 5 + 32 : weather.current.tempC;
+
+  double get _displayFeelsLike => isFahrenheit
+      ? weather.current.feelslikeC * 9 / 5 + 32
+      : weather.current.feelslikeC;
+
+  String get _unitSuffix => isFahrenheit ? '°F' : '°C';
+
+  static String _formatTime(DateTime dt) {
+    final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour12:$minute $period';
+  }
+
+  static String _formatDateHeading(DateTime dt) {
+    final weekday = _weekdays[dt.weekday - 1];
+    final month = _months[dt.month - 1];
+    return '${_formatTime(dt)} • ${weekday.toUpperCase()}, '
+        '${dt.day} ${month.toUpperCase()} ${dt.year}';
+  }
+
+  static String _uvLabel(double uv) {
+    if (uv <= 2) {
+      return 'LOW';
+    }
+    if (uv <= 5) {
+      return 'MODERATE';
+    }
+    if (uv <= 7) {
+      return 'HIGH';
+    }
+    if (uv <= 10) {
+      return 'VERY HIGH';
+    }
+    return 'EXTREME';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return SingleChildScrollView(
+      padding: AppPadding.screenBody,
+      child: Column(
+        children: [
+          ScreenHeader(
+            onBack: () => AppNavigator.pop(context: context),
+            trailing: UnitToggle(
+              isFahrenheit: isFahrenheit,
+              onToggle: onToggleUnit,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (isCached) ...[
+            const SizedBox(height: 12),
+            const OfflineCacheBanner(),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            [
+              weather.location.name,
+              weather.location.region,
+              weather.location.country,
+            ].where((s) => s.isNotEmpty).join(', '),
+            style: textTheme.titleLarge?.copyWith(
+              color: AppColors.onSurface,
+              fontWeight: FontWeight.w500,
+              fontSize: ScreenSize.fontScale(context, 22),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _formatDateHeading(weather.location.localtime),
+            style: textTheme.labelSmall?.copyWith(
+              color: AppColors.onSurfaceVariant,
+              fontWeight: FontWeight.w200,
+              fontSize: ScreenSize.fontScale(context, 14),
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${_displayTemp.round()}°',
+                style: textTheme.displayMedium?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: ScreenSize.fontScale(context, 48),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 12, left: 2),
+                child: Text(
+                  isFahrenheit ? 'F' : 'C',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontSize: ScreenSize.fontScale(context, 22),
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CachedNetworkImage(
+                imageUrl: weather.current.condition.iconUrl,
+                width: 24,
+                height: 24,
+                errorWidget: (context, url, error) => const SizedBox.shrink(),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                weather.current.condition.text,
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColors.onSurface,
+                  fontSize: ScreenSize.fontScale(context, 16),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Feels like ${_displayFeelsLike.round()}$_unitSuffix • '
+            'Updated at ${_formatTime(weather.current.lastUpdated)}',
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.outline,
+              fontSize: ScreenSize.fontScale(context, 14),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: StatCard(
+                  icon: Icons.water_drop_outlined,
+                  label: 'HUMIDITY',
+                  value: '${weather.current.humidity}%',
+                  caption:
+                      'The dew point is '
+                      '${weather.current.dewpointC.round()}° right now.',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatCard(
+                  icon: Icons.air,
+                  label: 'WIND',
+                  value: weather.current.windKph.toStringAsFixed(1),
+                  valueSuffix: 'KM/H ${weather.current.windDir}',
+                  caption:
+                      'Gusts up to ${weather.current.gustKph.round()} '
+                      'km/h.',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: StatCard(
+                  icon: Icons.wb_sunny_outlined,
+                  label: 'UV INDEX',
+                  value: weather.current.uv.toStringAsFixed(1),
+                  valueSuffix: _uvLabel(weather.current.uv),
+                  caption: weather.current.uv >= 3
+                      ? 'Use sun protection if outdoors.'
+                      : 'Minimal risk right now.',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatCard(
+                  icon: Icons.speed_outlined,
+                  label: 'PRESSURE',
+                  value: weather.current.pressureMb.round().toString(),
+                  valueSuffix: 'MB',
+                  caption: 'Current barometric pressure.',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: AppPadding.card,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "TODAY'S DETAILS",
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.outline,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DetailItem(
+                          label: 'WIND DIRECTION',
+                          value:
+                              '${weather.current.windDir} '
+                              '(${weather.current.windDegree}°)',
+                        ),
+                      ),
+                      Expanded(
+                        child: DetailItem(
+                          label: 'PRECIPITATION',
+                          value: '${weather.current.precipMm} mm',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DetailItem(
+                          label: 'CLOUD COVER',
+                          value: '${weather.current.cloud}%',
+                        ),
+                      ),
+                      Expanded(
+                        child: DetailItem(
+                          label: 'RAIN CHANCE',
+                          value: '${weather.current.chanceOfRain}%',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DetailItem(
+                          label: 'HEAT INDEX',
+                          value: '${weather.current.heatindexC.round()}°C',
+                        ),
+                      ),
+                      Expanded(
+                        child: DetailItem(
+                          label: 'WIND CHILL',
+                          value: '${weather.current.windchillC.round()}°C',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DetailItem(
+                          label: 'VISIBILITY',
+                          value: '${weather.current.visKm.round()} km',
+                        ),
+                      ),
+                      Expanded(
+                        child: DetailItem(
+                          label: 'DEW POINT',
+                          value: '${weather.current.dewpointC.round()}°C',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
