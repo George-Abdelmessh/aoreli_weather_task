@@ -30,7 +30,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _recentSearches = context.read<WeatherCubit>().getRecentSearches();
+    _updateRecentSearches();
   }
 
   @override
@@ -46,13 +46,19 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
     _searchController.text = city.trim();
-    context.read<WeatherCubit>().fetchWeather(
-      GetWeatherParams(city: city.trim()),
-    );
+    context
+        .read<WeatherCubit>()
+        .fetchWeather(GetWeatherParams(city: city.trim()))
+        .then((value) {
+          _updateRecentSearches();
+        });
     AppNavigator.push(
       context: context,
       screen: ResultScreen(city: city.trim()),
     );
+  }
+
+  void _updateRecentSearches() {
     _recentSearches = context.read<WeatherCubit>().getRecentSearches();
   }
 
@@ -165,15 +171,22 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+
+                  BlocBuilder<WeatherCubit, WeatherState>(
+                    builder: (context, state) {
+                      return Column(
+                        children: [
+                          for (final label in _recentSearches) ...[
+                            RecentSearchTile(
+                              label: label,
+                              onTap: () => _search(_cityFromLabel(label)),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
                   
-                 
-                  for (final label in _recentSearches) ...[
-                    RecentSearchTile(
-                      label: label,
-                      onTap: () => _search(_cityFromLabel(label)),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
                 ],
               ],
             ),
