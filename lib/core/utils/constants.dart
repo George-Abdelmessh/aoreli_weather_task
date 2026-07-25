@@ -2,6 +2,7 @@ class EnvKeys {
   EnvKeys._();
 
   static const String weatherApiKey = 'WEATHER_API_KEY';
+  static const String weatherBaseUrl = 'WEATHER_BASE_URL';
 }
 
 class Constants {

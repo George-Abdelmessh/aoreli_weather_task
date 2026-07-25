@@ -1,14 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
+import '../utils/constants.dart';
 import 'base_api_service.dart';
-import 'end_points.dart';
 
 class DioApiService implements BaseApiService {
   DioApiService({required Dio dioClient}) : _dio = dioClient {
     _dio.options = BaseOptions(
-      baseUrl: EndPoints.WEATHER_BASE_URL,
+      baseUrl: dotenv.env[EnvKeys.weatherBaseUrl] ?? '',
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       followRedirects: false,
