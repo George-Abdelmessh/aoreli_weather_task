@@ -28,8 +28,7 @@ and more — with recent searches and offline caching built in.
 - **Connectivity checks:** `connectivity_plus`
 - **Functional error handling:** `dartz` (`Either<Failure, T>`)
 - **Env config:** `flutter_dotenv`
-- Other UI packages: `google_fonts`, `flutter_svg`, `cached_network_image`,
-  `skeletonizer`
+- Other UI packages: `google_fonts`, `flutter_svg`, `cached_network_image`
 
 ## Architecture
 
@@ -99,12 +98,6 @@ last cached `WeatherModel` if one exists.
    ```bash
    flutter run
    ```
-
-### Running Tests
-
-```bash
-flutter test
-```
 
 ## Project Info
 
