@@ -8,8 +8,8 @@ import '../../../../../../core/helpers/app_navigator.dart';
 import '../../../../../../core/helpers/location_service.dart';
 import '../../../../../../core/helpers/permission_service.dart';
 import '../../../../data/models/weather_model.dart';
+import '../../../../data/params/get_weather_params.dart';
 import '../../../controller/weather_cubit.dart';
-import '../../../controller/weather_state.dart';
 import '../../shared_widgets/weather_search_field.dart';
 
 class WeatherScreen extends StatefulWidget {
@@ -34,7 +34,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     if (trimmed.isEmpty) {
       return;
     }
-    context.read<WeatherCubit>().fetchWeather(trimmed);
+    context.read<WeatherCubit>().fetchWeather(GetWeatherParams(city: trimmed));
   }
 
   void _toggleUnit() {
@@ -45,14 +45,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<WeatherCubit, WeatherState>(
       builder: (context, state) {
-        final gradient = state.when(
-          initial: () => AppColors.splashGradient,
-          loading: () => AppColors.loadingGradient,
-          success: (weather, isCached) => AppColors.backgroundGradient(
-            WeatherCondition.fromApiText(weather.current.condition.text),
-          ),
-          error: (_) => AppColors.errorGradient,
-        );
+        final gradient = switch (state) {
+          WeatherLoading() => AppColors.loadingGradient,
+          WeatherSuccess(weather: final weather) =>
+            AppColors.backgroundGradient(
+              WeatherCondition.fromApiText(weather.current.condition.text),
+            ),
+          WeatherError() => AppColors.errorGradient,
+          // WeatherInitial, plus a defensive fallback for any future state
+          // (WeatherState is a plain abstract class, not `sealed`, so the
+          // compiler can't prove this switch is exhaustive).
+          _ => AppColors.splashGradient,
+        };
 
         return Scaffold(
           body: Container(
@@ -66,27 +70,24 @@ class _WeatherScreenState extends State<WeatherScreen> {
               ),
             ),
             child: SafeArea(
-              child: state.when(
-                initial: () => _HomeContent(
-                  controller: _searchController,
-                  onSearch: _search,
-                  recentSearches: context
-                      .read<WeatherCubit>()
-                      .getRecentSearches(),
-                ),
-                loading: () => _LoadingContent(
+              child: switch (state) {
+                WeatherLoading() => _LoadingContent(
                   controller: _searchController,
                   onSearch: _search,
                 ),
-                success: (weather, isCached) => _WeatherResultContent(
-                  weather: weather,
-                  isCached: isCached,
-                  controller: _searchController,
-                  onSearch: _search,
-                  isFahrenheit: _isFahrenheit,
-                  onToggleUnit: _toggleUnit,
-                ),
-                error: (message) => Padding(
+                WeatherSuccess(
+                  weather: final weather,
+                  isCached: final isCached,
+                ) =>
+                  _WeatherResultContent(
+                    weather: weather,
+                    isCached: isCached,
+                    controller: _searchController,
+                    onSearch: _search,
+                    isFahrenheit: _isFahrenheit,
+                    onToggleUnit: _toggleUnit,
+                  ),
+                WeatherError(message: final message) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: _ErrorContent(
                     message: message,
@@ -94,7 +95,17 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     onSearch: _search,
                   ),
                 ),
-              ),
+                // WeatherInitial, plus a defensive fallback for any future
+                // state (WeatherState is a plain abstract class, not
+                // `sealed`, so this switch can't be exhaustiveness-checked).
+                _ => _HomeContent(
+                  controller: _searchController,
+                  onSearch: _search,
+                  recentSearches: context
+                      .read<WeatherCubit>()
+                      .getRecentSearches(),
+                ),
+              },
             ),
           ),
         );
@@ -707,9 +718,8 @@ class _WeatherResultContent extends StatelessWidget {
     'December',
   ];
 
-  double get _displayTemp => isFahrenheit
-      ? weather.current.tempC * 9 / 5 + 32
-      : weather.current.tempC;
+  double get _displayTemp =>
+      isFahrenheit ? weather.current.tempC * 9 / 5 + 32 : weather.current.tempC;
 
   double get _displayFeelsLike => isFahrenheit
       ? weather.current.feelslikeC * 9 / 5 + 32
@@ -923,7 +933,8 @@ class _WeatherResultContent extends StatelessWidget {
                         Expanded(
                           child: _DetailItem(
                             label: 'WIND DIRECTION',
-                            value: '${weather.current.windDir} '
+                            value:
+                                '${weather.current.windDir} '
                                 '(${weather.current.windDegree}°)',
                           ),
                         ),

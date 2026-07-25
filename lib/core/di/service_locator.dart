@@ -19,15 +19,9 @@ Future<void> initServiceLocator() async {
 
   sl
     //! Features (repository, then implementation, per feature)
-    ..registerFactory<WeatherCubit>(
-      () => WeatherCubit(weatherRepository: sl()),
-    )
+    ..registerFactory<WeatherCubit>(() => WeatherCubit(sl()))
     ..registerLazySingleton<WeatherRepository>(
-      () => RemoteApi(
-        apiService: sl(),
-        networkInfo: sl(),
-        localData: sl(),
-      ),
+      () => RemoteApi(apiService: sl(), networkInfo: sl(), localData: sl()),
     )
     ..registerLazySingleton<LocalData>(
       () => LocalData(sharedPreferencesService: sl()),

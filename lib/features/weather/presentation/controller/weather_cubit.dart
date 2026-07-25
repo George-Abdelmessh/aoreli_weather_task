@@ -1,14 +1,15 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../data/models/weather_model.dart';
 import '../../data/params/get_weather_params.dart';
 import '../../data/repositories/weather_repository.dart';
-import 'weather_state.dart';
+
+part 'weather_state.dart';
 
 class WeatherCubit extends Cubit<WeatherState> {
-  WeatherCubit({required WeatherRepository weatherRepository})
-      : _weatherRepository = weatherRepository,
-        super(const WeatherState.initial());
+  WeatherCubit(this._weatherRepository) : super(const WeatherInitial());
 
   final WeatherRepository _weatherRepository;
 
@@ -16,23 +17,19 @@ class WeatherCubit extends Cubit<WeatherState> {
   /// shortcuts on the Home screen.
   List<String> getRecentSearches() => _weatherRepository.getRecentSearches();
 
-  Future<void> fetchWeather(String city) async {
-    emit(const WeatherState.loading());
-    final result = await _weatherRepository.getWeather(
-      GetWeatherParams(city: city),
-    );
-    result.fold(
-      (failure) {
-        if (failure is NoInternetFailure) {
-          final cached = _weatherRepository.getCachedWeather();
-          if (cached != null) {
-            emit(WeatherState.success(cached, isCached: true));
-            return;
-          }
+  /// Fetches weather data for a given city.
+  Future<void> fetchWeather(GetWeatherParams params) async {
+    emit(const WeatherLoading());
+    final result = await _weatherRepository.getWeather(params);
+    result.fold((failure) {
+      if (failure is NoInternetFailure) {
+        final cached = _weatherRepository.getCachedWeather();
+        if (cached != null) {
+          emit(WeatherSuccess(cached, isCached: true));
+          return;
         }
-        emit(WeatherState.error(failure.message));
-      },
-      (weather) => emit(WeatherState.success(weather)),
-    );
+      }
+      emit(WeatherError(failure.message));
+    }, (weather) => emit(WeatherSuccess(weather)));
   }
 }
