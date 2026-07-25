@@ -10,7 +10,7 @@ void main() {
     await initServiceLocator();
   });
 
-  testWidgets('App renders without throwing', (WidgetTester tester) async {
+  testWidgets('App renders without throwing', (tester) async {
     await tester.pumpWidget(const MyApp());
     expect(find.byType(MyApp), findsOneWidget);
   });

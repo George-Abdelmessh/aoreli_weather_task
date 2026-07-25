@@ -1,4 +1,4 @@
-import 'package:aoreli_weather/core/helpers/AppValidators.dart';
+import 'package:aoreli_weather/core/helpers/app_validators.dart';
 import 'package:aoreli_weather/core/utils/screen_size.dart';
 import 'package:aoreli_weather/features/shared/custom_widgets/custom_button.dart';
 import 'package:flutter/material.dart';

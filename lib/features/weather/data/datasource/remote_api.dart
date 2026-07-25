@@ -19,12 +19,10 @@ import 'local_data.dart';
 /// delegated straight through to `LocalData`.
 class RemoteApi implements WeatherRepository {
   RemoteApi({
-    required BaseApiService apiService,
-    required NetworkInfo networkInfo,
-    required LocalData localData,
-  }) : _apiService = apiService,
-       _networkInfo = networkInfo,
-       _localData = localData;
+    required this._apiService,
+    required this._networkInfo,
+    required this._localData,
+  });
 
   final BaseApiService _apiService;
   final NetworkInfo _networkInfo;

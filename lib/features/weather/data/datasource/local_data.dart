@@ -9,8 +9,7 @@ import '../models/weather_model.dart';
 /// notion of the network; `RemoteApi` (the `WeatherRepository`
 /// implementation) calls into this after a successful fetch.
 class LocalData {
-  LocalData({required SharedPreferencesService sharedPreferencesService})
-    : _sharedPreferencesService = sharedPreferencesService;
+  LocalData({required this._sharedPreferencesService});
 
   final SharedPreferencesService _sharedPreferencesService;
 

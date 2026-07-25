@@ -20,8 +20,10 @@ extension AppValidators on String? {
 
   /// Validates a password.
   ///
-  /// Returns an error message if the password is empty, shorter than 8 characters,
-  /// or lacks at least one number, one uppercase letter, and one special character.
+  /// Returns an error message if the password is empty, shorter 
+  /// than 8 characters,
+  /// or lacks at least one number, one uppercase letter, 
+  /// and one special character.
   String? password() {
     if (this == null || this!.isEmpty) {
       return 'Password is required';
@@ -84,12 +86,13 @@ extension AppValidators on String? {
 
   /// Validates a phone number.
   ///
-  /// Returns an error message if the value is null, empty, or contains non-numeric characters.
+  /// Returns an error message if the value is null, empty, 
+  /// or contains non-numeric characters.
   String? phoneNumber() {
     if (this == null || this!.isEmpty) {
       return 'Required';
     }
-    if (!this!.contains(RegExp('^[0-9]*\$'))) {
+    if (!this!.contains(RegExp(r'^[0-9]*$'))) {
       return 'Invalid phone number';
     }
     return null;
@@ -97,7 +100,8 @@ extension AppValidators on String? {
 
   /// Validates if a value is identical to another.
   ///
-  /// Returns an error message if the value is null, empty, or not identical to [other].
+  /// Returns an error message if the value is null, empty, 
+  /// or not identical to [other].
   String? identical(String? other) {
     if (this == null || this!.isEmpty) {
       return 'Required';
