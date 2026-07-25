@@ -1,5 +1,8 @@
 import 'package:aoreli_weather/core/config/themes/app_colors.dart';
 import 'package:aoreli_weather/core/config/themes/app_padding.dart';
+import 'package:aoreli_weather/core/helpers/app_navigator.dart';
+import 'package:aoreli_weather/core/utils/screen_size.dart';
+import 'package:aoreli_weather/features/weather/presentation/view/shared_widgets/screen_header.dart';
 import 'package:flutter/material.dart';
 
 class SearchErrorWidget extends StatelessWidget {
@@ -18,8 +21,11 @@ class SearchErrorWidget extends StatelessWidget {
     return Padding(
       padding: AppPadding.screenBody,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          ScreenHeader(
+            onBack: () => AppNavigator.pop(context: context),
+          ),
+          SizedBox(height: ScreenSize.heightScale(context, 160)),
           CircleAvatar(
             radius: 36,
             backgroundColor: Colors.transparent,

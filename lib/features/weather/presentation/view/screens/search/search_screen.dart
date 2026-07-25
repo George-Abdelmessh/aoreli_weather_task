@@ -25,6 +25,13 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  late List<String> _recentSearches;
+
+  @override
+  void initState() {
+    super.initState();
+    _recentSearches = context.read<WeatherCubit>().getRecentSearches();
+  }
 
   @override
   void dispose() {
@@ -46,12 +53,12 @@ class _SearchScreenState extends State<SearchScreen> {
       context: context,
       screen: ResultScreen(city: city.trim()),
     );
+    _recentSearches = context.read<WeatherCubit>().getRecentSearches();
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final recentSearches = context.read<WeatherCubit>().getRecentSearches();
 
     return Scaffold(
       body: Container(
@@ -142,7 +149,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                 ),
-                if (recentSearches.isNotEmpty) ...[
+                if (_recentSearches.isNotEmpty) ...[
                   const SizedBox(height: 28),
                   Align(
                     alignment: Alignment.centerLeft,
@@ -158,7 +165,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  for (final label in recentSearches) ...[
+                  
+                 
+                  for (final label in _recentSearches) ...[
                     RecentSearchTile(
                       label: label,
                       onTap: () => _search(_cityFromLabel(label)),
