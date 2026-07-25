@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../../../core/config/themes/app_colors.dart';
 import '../../../../data/models/weather_model.dart';
@@ -70,9 +71,9 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     onSearch: _search,
                   ),
                 ),
-                loading: () => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: _LoadingContent(city: _searchController.text),
+                loading: () => _LoadingContent(
+                  controller: _searchController,
+                  onSearch: _search,
                 ),
                 success: (weather) => _WeatherResultContent(
                   weather: weather,
@@ -217,39 +218,243 @@ class _CompactHeader extends StatelessWidget {
 }
 
 class _LoadingContent extends StatelessWidget {
-  const _LoadingContent({required this.city});
+  const _LoadingContent({required this.controller, required this.onSearch});
 
-  final String city;
+  final TextEditingController controller;
+  final ValueChanged<String> onSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final city = controller.text.trim();
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _CompactHeader(),
+            const SizedBox(height: 16),
+            WeatherSearchField(controller: controller, onSubmitted: onSearch),
+            const SizedBox(height: 24),
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.wb_sunny_outlined,
+                    size: 48,
+                    color: AppColors.tertiaryDark.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    city.isEmpty
+                        ? 'Checking the weather...'
+                        : 'Checking the weather in $city...',
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'This should only take a moment.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.outline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            const _ResultSkeleton(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shimmering placeholder that mirrors [_WeatherResultContent]'s layout, so
+/// the loading state previews the shape of the data about to arrive.
+class _ResultSkeleton extends StatelessWidget {
+  const _ResultSkeleton();
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        const _CompactHeader(),
-        const Spacer(),
-        Icon(
-          Icons.wb_sunny_outlined,
-          size: 56,
-          color: AppColors.tertiaryDark.withValues(alpha: 0.7),
-        ),
-        const SizedBox(height: 20),
-        const CircularProgressIndicator(strokeWidth: 2),
-        const SizedBox(height: 20),
-        Text(
-          'Checking the weather in $city...',
-          textAlign: TextAlign.center,
-          style: textTheme.titleMedium?.copyWith(color: AppColors.onSurface),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'This should only take a moment.',
-          style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
-        ),
-        const Spacer(),
-      ],
+    return Skeletonizer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Cairo, Al Qahirah, Egypt',
+            style: textTheme.titleLarge?.copyWith(color: AppColors.onSurface),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'WEDNESDAY, 22 JULY 2026',
+            style: textTheme.labelSmall?.copyWith(
+              color: AppColors.outline,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '41°',
+            style: textTheme.displayMedium?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.wb_sunny_outlined, size: 24),
+              const SizedBox(width: 6),
+              Text(
+                'Sunny',
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.water_drop_outlined,
+                  label: 'HUMIDITY',
+                  value: '44%',
+                  caption: 'The dew point is 9° right now.',
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.air,
+                  label: 'WIND',
+                  value: '34.6',
+                  valueSuffix: 'KM/H NW',
+                  caption: 'Gusts up to 41 km/h.',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.wb_sunny_outlined,
+                  label: 'UV INDEX',
+                  value: '0.2',
+                  valueSuffix: 'LOW',
+                  caption: 'Minimal risk right now.',
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.speed_outlined,
+                  label: 'PRESSURE',
+                  value: '1007',
+                  valueSuffix: 'MB',
+                  caption: 'Current barometric pressure.',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "TODAY'S DETAILS",
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.outline,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _DetailItem(
+                          label: 'WIND DIRECTION',
+                          value: 'NW (318°)',
+                        ),
+                      ),
+                      Expanded(
+                        child: _DetailItem(
+                          label: 'PRECIPITATION',
+                          value: '0 mm',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _DetailItem(
+                          label: 'CLOUD COVER',
+                          value: '0%',
+                        ),
+                      ),
+                      Expanded(
+                        child: _DetailItem(label: 'RAIN CHANCE', value: '1%'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _DetailItem(
+                          label: 'HEAT INDEX',
+                          value: '39°C',
+                        ),
+                      ),
+                      Expanded(
+                        child: _DetailItem(
+                          label: 'WIND CHILL',
+                          value: '39°C',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: _DetailItem(
+                          label: 'VISIBILITY',
+                          value: '10 km',
+                        ),
+                      ),
+                      Expanded(
+                        child: _DetailItem(label: 'DEW POINT', value: '9°C'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
