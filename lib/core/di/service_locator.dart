@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/weather/data/datasource/remote_api.dart';
 import '../../features/weather/data/repositories/weather_repository.dart';
+import '../../features/weather/presentation/controller/weather_cubit.dart';
 import '../api/base_api_service.dart';
 import '../api/dio_api_service.dart';
 import '../connection/network_info.dart';
@@ -14,6 +15,9 @@ final sl = GetIt.instance;
 Future<void> initServiceLocator() async {
   sl
     //! Features (repository, then implementation, per feature)
+    ..registerFactory<WeatherCubit>(
+      () => WeatherCubit(weatherRepository: sl()),
+    )
     ..registerLazySingleton<WeatherRepository>(
       () => RemoteApi(
         apiService: sl(),
