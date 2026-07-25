@@ -34,3 +34,7 @@ class WeatherError extends WeatherState {
 class WeatherUnitToggled extends WeatherState {
   const WeatherUnitToggled();
 }
+
+class WeatherUnitToggling extends WeatherState {
+  const WeatherUnitToggling();
+}

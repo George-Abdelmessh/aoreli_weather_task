@@ -1,4 +1,6 @@
 import 'package:aoreli_weather/core/utils/screen_size.dart';
+import 'package:aoreli_weather/features/weather/data/params/get_weather_params.dart';
+import 'package:aoreli_weather/features/weather/presentation/view/screens/result/widgets/search_error_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,12 +11,10 @@ import '../../../../../../core/helpers/app_navigator.dart';
 import '../../../../data/models/weather_model.dart';
 import '../../../controller/weather_cubit.dart';
 import '../../shared_widgets/screen_header.dart';
-import '../error/error_screen.dart';
 import 'widgets/detail_item.dart';
 import 'widgets/offline_cache_banner.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/unit_toggle.dart';
-
 
 class ResultScreen extends StatefulWidget {
   const ResultScreen({required this.city, super.key});
@@ -26,29 +26,21 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
-  late final _weatherCubit = WeatherCubit.get(context);
-
+  List<Color> _getWeatherGradientColor() {
+    if (context.read<WeatherCubit>().weather == null) {
+      return AppColors.loadingGradient;
+    }
+    return AppColors.backgroundGradient(
+      WeatherCondition.fromApiText(
+        context.read<WeatherCubit>().weather?.current.condition.text ?? '',
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<WeatherCubit, WeatherState>(
-      listener: (context, state) {
-        if (state is WeatherError) {
-          AppNavigator.pushReplacement(
-            context: context,
-            screen: ErrorScreen(city: widget.city, message: state.message),
-          );
-        }
-      },
+    return BlocBuilder<WeatherCubit, WeatherState>(
       builder: (context, state) {
-        final gradient = state is WeatherSuccess
-            ? AppColors.backgroundGradient(
-                WeatherCondition.fromApiText(
-                  _weatherCubit.weather?.current.condition.text ?? '',
-                ),
-              )
-            : AppColors.loadingGradient;
-
         return Scaffold(
           body: Container(
             width: double.infinity,
@@ -57,18 +49,34 @@ class _ResultScreenState extends State<ResultScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: gradient,
+                colors: _getWeatherGradientColor(),
               ),
             ),
             child: SafeArea(
-              child: state is WeatherSuccess || state is WeatherUnitToggled ?
-                   _ResultBody(
-                      weather: _weatherCubit.weather!,
-                      isCached: _weatherCubit.isCached,
-                      isFahrenheit: _weatherCubit.isFahrenheit,
-                      onToggleUnit: _weatherCubit.toggleUnit,
-                    )
-                  : const Center(child: CircularProgressIndicator()),
+              child: Builder(
+                builder: (context) {
+                  if (state is WeatherError) {
+                    return SearchErrorWidget(
+                      message: state.message,
+                      onTryAgainPressed: () =>
+                          context.read<WeatherCubit>().fetchWeather(
+                            GetWeatherParams(city: widget.city.trim()),
+                          ),
+                    );
+                  } else if (state is WeatherSuccess ||
+                      state is WeatherUnitToggled ||
+                      state is WeatherUnitToggling) {
+                    return _ResultBody(
+                      weather: context.read<WeatherCubit>().weather!,
+                      isCached: context.read<WeatherCubit>().isCached,
+                      isFahrenheit: context.read<WeatherCubit>().isFahrenheit,
+                      onToggleUnit: context.read<WeatherCubit>().toggleUnit,
+                    );
+                  } else {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                },
+              ),
             ),
           ),
         );
