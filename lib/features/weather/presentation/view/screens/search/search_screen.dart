@@ -174,19 +174,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
                   BlocBuilder<WeatherCubit, WeatherState>(
                     builder: (context, state) {
-                      return Column(
-                        children: [
-                          for (final label in _recentSearches) ...[
-                            RecentSearchTile(
-                              label: label,
-                              onTap: () => _search(_cityFromLabel(label)),
-                            ),
-                          ],
-                        ],
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _recentSearches.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 6),
+                        itemBuilder: (context, index) {
+                          return RecentSearchTile(
+                            label: _recentSearches[index],
+                            onTap: () =>
+                                _search(_cityFromLabel(_recentSearches[index])),
+                          );
+                        },
                       );
                     },
                   ),
-                  
                 ],
               ],
             ),
