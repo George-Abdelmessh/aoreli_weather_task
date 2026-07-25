@@ -1,5 +1,6 @@
 import 'package:aoreli_weather/core/helpers/AppValidators.dart';
 import 'package:aoreli_weather/core/utils/screen_size.dart';
+import 'package:aoreli_weather/features/shared/custom_widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,18 +8,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../../core/config/themes/app_colors.dart';
 import '../../../../../../core/config/themes/app_padding.dart';
 import '../../../../../../core/helpers/app_navigator.dart';
-import '../../../../../../core/helpers/location_service.dart';
-import '../../../../../../core/helpers/permission_service.dart';
 import '../../../../../../core/utils/asset_paths.dart';
+import '../../../../../shared/custom_widgets/cutom_input.dart';
 import '../../../../data/params/get_weather_params.dart';
 import '../../../controller/weather_cubit.dart';
-import '../../../../../shared/custom_widgets/cutom_input.dart';
 import '../result/result_screen.dart';
 import 'widgets/recent_search_tile.dart';
 
-/// Entry screen: search for a city, use the current location, or re-run a
-/// recent search. On submit it kicks off [WeatherCubit.fetchWeather] and
-/// pushes [ResultScreen], which owns the loading/success UI.
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -29,9 +26,11 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
   @override
   void dispose() {
     _searchController.dispose();
+    _formKey.currentState?.dispose();
     super.dispose();
   }
 
@@ -39,77 +38,12 @@ class _SearchScreenState extends State<SearchScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    final trimmed = city.trim();
-    if (trimmed.isEmpty) {
-      return;
-    }
-    context.read<WeatherCubit>().fetchWeather(GetWeatherParams(city: trimmed));
+    context.read<WeatherCubit>().fetchWeather(
+      GetWeatherParams(city: city.trim()),
+    );
     AppNavigator.push(
       context: context,
-      screen: ResultScreen(city: trimmed),
-    );
-  }
-
-  Future<void> _useMyLocation() async {
-    final serviceEnabled = await AppLocationService.isServiceEnabled();
-    if (!serviceEnabled) {
-      if (!mounted) {
-        return;
-      }
-      _showLocationRequiredDialog(
-        message: 'Turn on location services on your device to use this.',
-      );
-      return;
-    }
-
-    final granted = await AppPermissionService.requestLocationPermission();
-    if (!granted) {
-      if (!mounted) {
-        return;
-      }
-      _showLocationRequiredDialog(
-        message:
-            'Aoreli needs location access to show weather for where '
-            "you are. You'll need to grant it from Settings.",
-      );
-      return;
-    }
-
-    try {
-      final position = await AppLocationService.getCurrentPosition();
-      _search('${position.latitude},${position.longitude}');
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Couldn't get your location. Please try again."),
-        ),
-      );
-    }
-  }
-
-  void _showLocationRequiredDialog({required String message}) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Location access required'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => AppNavigator.pop(context: dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              AppNavigator.pop(context: dialogContext);
-              AppPermissionService.openSettings();
-            },
-            child: const Text('Give Access'),
-          ),
-        ],
-      ),
+      screen: ResultScreen(city: city.trim()),
     );
   }
 
@@ -195,21 +129,16 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _search(_searchController.text),
-
-                    child: const Text('View weather'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _useMyLocation,
-                    icon: const Icon(Icons.near_me_outlined, size: 18),
-                    label: const Text('Use my location'),
+                CutsomButton(
+                  onPressed: () => _search(_searchController.text),
+                  backgroundColor: AppColors.primary,
+                  child: Text(
+                    'Search',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.surface,
+                      fontSize: ScreenSize.fontScale(context, 16),
+                    ),
                   ),
                 ),
                 if (recentSearches.isNotEmpty) ...[
