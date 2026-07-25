@@ -7,11 +7,19 @@ enum WeatherCondition {
   partlyCloudy,
   cloudy,
   overcast,
-  moderateRain;
+  moderateRain,
+
+  /// weatherapi.com has ~50 distinct condition strings (e.g. "Blizzard",
+  /// "Freezing fog", "Blowing snow") and the design only covers 5 of them.
+  /// Anything that doesn't clearly match one of those falls back here, with
+  /// its own neutral gradient (see [AppColors.defaultGradient]) rather than
+  /// being silently misclassified as one of the named conditions.
+  unknown;
 
   /// Maps a free-text condition (e.g. weatherapi.com's `condition.text`,
   /// such as "Sunny", "Patchy rain possible") to the closest
-  /// [WeatherCondition] the design has a gradient for.
+  /// [WeatherCondition] the design has a gradient for, or [unknown] if none
+  /// of the recognized keywords match.
   factory WeatherCondition.fromApiText(String text) {
     final normalized = text.toLowerCase();
 
@@ -32,7 +40,10 @@ enum WeatherCondition {
         normalized.contains('mist')) {
       return WeatherCondition.cloudy;
     }
-    return WeatherCondition.clear;
+    if (normalized.contains('sunny') || normalized.contains('clear')) {
+      return WeatherCondition.clear;
+    }
+    return WeatherCondition.unknown;
   }
 }
 
@@ -108,6 +119,14 @@ class AppColors {
     Color(0xFFD7E1E4),
   ];
 
+  /// Neutral fallback for any condition the design doesn't have a specific
+  /// gradient for (see [WeatherCondition.unknown]).
+  static const List<Color> defaultGradient = [
+    Color(0xFFE0E3E8),
+    Color(0xFFEDEBF0),
+    Color(0xFFF8F6FB),
+  ];
+
   /// Returns the background gradient stops for a given [WeatherCondition],
   /// matching the "Current Weather" screens in the Figma design.
   static List<Color> backgroundGradient(WeatherCondition condition) {
@@ -122,6 +141,8 @@ class AppColors {
         return overcastGradient;
       case WeatherCondition.moderateRain:
         return moderateRainGradient;
+      case WeatherCondition.unknown:
+        return defaultGradient;
     }
   }
 }

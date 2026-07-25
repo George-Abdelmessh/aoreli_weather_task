@@ -17,6 +17,7 @@ class WeatherScreen extends StatefulWidget {
 
 class _WeatherScreenState extends State<WeatherScreen> {
   final _searchController = TextEditingController();
+  bool _isFahrenheit = false;
 
   @override
   void dispose() {
@@ -30,6 +31,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
       return;
     }
     context.read<WeatherCubit>().fetchWeather(trimmed);
+  }
+
+  void _toggleUnit() {
+    setState(() => _isFahrenheit = !_isFahrenheit);
   }
 
   @override
@@ -57,22 +62,28 @@ class _WeatherScreenState extends State<WeatherScreen> {
               ),
             ),
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: state.when(
-                  initial: () => _HomeContent(
+              child: state.when(
+                initial: () => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _HomeContent(
                     controller: _searchController,
                     onSearch: _search,
                   ),
-                  loading: () => _LoadingContent(
-                    city: _searchController.text,
-                  ),
-                  success: (weather) => _WeatherResultContent(
-                    weather: weather,
-                    controller: _searchController,
-                    onSearch: _search,
-                  ),
-                  error: (message) => _ErrorContent(
+                ),
+                loading: () => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _LoadingContent(city: _searchController.text),
+                ),
+                success: (weather) => _WeatherResultContent(
+                  weather: weather,
+                  controller: _searchController,
+                  onSearch: _search,
+                  isFahrenheit: _isFahrenheit,
+                  onToggleUnit: _toggleUnit,
+                ),
+                error: (message) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _ErrorContent(
                     message: message,
                     controller: _searchController,
                     onSearch: _search,
@@ -178,9 +189,7 @@ class _HomeContent extends StatelessWidget {
 }
 
 class _CompactHeader extends StatelessWidget {
-  const _CompactHeader({this.subtitle});
-
-  final String? subtitle;
+  const _CompactHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -194,11 +203,6 @@ class _CompactHeader extends StatelessWidget {
           color: AppColors.outline,
         ),
         const SizedBox(width: 4),
-        if (subtitle != null)
-          Text(
-            subtitle!,
-            style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
-          ),
         const Spacer(),
         Text(
           'Aoreli',
@@ -329,50 +333,488 @@ class _WeatherResultContent extends StatelessWidget {
     required this.weather,
     required this.controller,
     required this.onSearch,
+    required this.isFahrenheit,
+    required this.onToggleUnit,
   });
 
   final WeatherModel weather;
   final TextEditingController controller;
   final ValueChanged<String> onSearch;
+  final bool isFahrenheit;
+  final VoidCallback onToggleUnit;
+
+  static const List<String> _weekdays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  static const List<String> _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  double get _displayTemp =>
+      isFahrenheit ? weather.temperatureC * 9 / 5 + 32 : weather.temperatureC;
+
+  double get _displayFeelsLike =>
+      isFahrenheit ? weather.feelsLikeC * 9 / 5 + 32 : weather.feelsLikeC;
+
+  String get _unitSuffix => isFahrenheit ? '°F' : '°C';
+
+  static String _formatTime(DateTime dt) {
+    final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour12:$minute $period';
+  }
+
+  static String _formatDateHeading(DateTime dt) {
+    final weekday = _weekdays[dt.weekday - 1];
+    final month = _months[dt.month - 1];
+    return '${_formatTime(dt)} • ${weekday.toUpperCase()}, '
+        '${dt.day} ${month.toUpperCase()} ${dt.year}';
+  }
+
+  static String _uvLabel(double uv) {
+    if (uv <= 2) {
+      return 'LOW';
+    }
+    if (uv <= 5) {
+      return 'MODERATE';
+    }
+    if (uv <= 7) {
+      return 'HIGH';
+    }
+    if (uv <= 10) {
+      return 'VERY HIGH';
+    }
+    return 'EXTREME';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 18,
+                  color: AppColors.outline,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Aoreli',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                _UnitToggle(
+                  isFahrenheit: isFahrenheit,
+                  onToggle: onToggleUnit,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            WeatherSearchField(controller: controller, onSubmitted: onSearch),
+            const SizedBox(height: 20),
+            Text(
+              [
+                weather.cityName,
+                weather.region,
+                weather.country,
+              ].where((s) => s.isNotEmpty).join(', '),
+              style: textTheme.titleLarge?.copyWith(color: AppColors.onSurface),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formatDateHeading(weather.localTime),
+              style: textTheme.labelSmall?.copyWith(
+                color: AppColors.outline,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_displayTemp.round()}°',
+                  style: textTheme.displayMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, left: 2),
+                  child: Text(
+                    isFahrenheit ? 'F' : 'C',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: weather.conditionIconUrl,
+                  width: 24,
+                  height: 24,
+                  errorWidget: (context, url, error) =>
+                      const SizedBox.shrink(),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  weather.conditionText,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Feels like ${_displayFeelsLike.round()}$_unitSuffix • '
+              'Updated at ${_formatTime(weather.lastUpdated)}',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.outline),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.water_drop_outlined,
+                    label: 'HUMIDITY',
+                    value: '${weather.humidity}%',
+                    caption:
+                        'The dew point is ${weather.dewPointC.round()}° '
+                        'right now.',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.air,
+                    label: 'WIND',
+                    value: weather.windKph.toStringAsFixed(1),
+                    valueSuffix: 'KM/H ${weather.windDir}',
+                    caption: 'Gusts up to ${weather.gustKph.round()} km/h.',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.wb_sunny_outlined,
+                    label: 'UV INDEX',
+                    value: weather.uv.toStringAsFixed(1),
+                    valueSuffix: _uvLabel(weather.uv),
+                    caption: weather.uv >= 3
+                        ? 'Use sun protection if outdoors.'
+                        : 'Minimal risk right now.',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.speed_outlined,
+                    label: 'PRESSURE',
+                    value: weather.pressureMb.round().toString(),
+                    valueSuffix: 'MB',
+                    caption: 'Current barometric pressure.',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "TODAY'S DETAILS",
+                      style: textTheme.labelSmall?.copyWith(
+                        color: AppColors.outline,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'WIND DIRECTION',
+                            value:
+                                '${weather.windDir} (${weather.windDegree}°)',
+                          ),
+                        ),
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'PRECIPITATION',
+                            value: '${weather.precipMm} mm',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'CLOUD COVER',
+                            value: '${weather.cloud}%',
+                          ),
+                        ),
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'RAIN CHANCE',
+                            value: '${weather.chanceOfRain}%',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'HEAT INDEX',
+                            value: '${weather.heatIndexC.round()}°C',
+                          ),
+                        ),
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'WIND CHILL',
+                            value: '${weather.windChillC.round()}°C',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'VISIBILITY',
+                            value: '${weather.visKm.round()} km',
+                          ),
+                        ),
+                        Expanded(
+                          child: _DetailItem(
+                            label: 'DEW POINT',
+                            value: '${weather.dewPointC.round()}°C',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UnitToggle extends StatelessWidget {
+  const _UnitToggle({required this.isFahrenheit, required this.onToggle});
+
+  final bool isFahrenheit;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _UnitPill(label: '°C', selected: !isFahrenheit),
+              _UnitPill(label: '°F', selected: isFahrenheit),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnitPill extends StatelessWidget {
+  const _UnitPill({required this.label, required this.selected});
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : AppColors.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.caption,
+    this.valueSuffix,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final String? valueSuffix;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    label,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.outline,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                Icon(icon, size: 16, color: AppColors.outline),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: textTheme.headlineSmall?.copyWith(
+                color: AppColors.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (valueSuffix != null)
+              Text(
+                valueSuffix!,
+                style: textTheme.labelSmall?.copyWith(
+                  color: AppColors.outline,
+                ),
+              ),
+            const SizedBox(height: 4),
+            Text(
+              caption,
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.outline,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailItem extends StatelessWidget {
+  const _DetailItem({required this.label, required this.value});
+
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
-        _CompactHeader(subtitle: weather.cityName),
-        const SizedBox(height: 16),
-        WeatherSearchField(controller: controller, onSubmitted: onSearch),
-        const Spacer(),
         Text(
-          '${weather.temperature.round()}°C',
-          style: textTheme.displayMedium?.copyWith(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
+          label,
+          style: textTheme.labelSmall?.copyWith(
+            color: AppColors.outline,
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CachedNetworkImage(
-              imageUrl: weather.conditionIconUrl,
-              width: 32,
-              height: 32,
-              errorWidget: (context, url, error) => const SizedBox.shrink(),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              weather.conditionText,
-              style: textTheme.titleMedium?.copyWith(
-                color: AppColors.onSurface,
-              ),
-            ),
-          ],
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: textTheme.bodyMedium?.copyWith(
+            color: AppColors.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        const Spacer(),
       ],
     );
   }
