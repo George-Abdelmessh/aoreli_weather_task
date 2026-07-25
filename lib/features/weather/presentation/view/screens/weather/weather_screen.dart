@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../../../core/config/themes/app_colors.dart';
+import '../../../../../../core/helpers/location_service.dart';
+import '../../../../../../core/helpers/permission_service.dart';
 import '../../../../data/models/weather_model.dart';
 import '../../../controller/weather_cubit.dart';
 import '../../../controller/weather_state.dart';
@@ -115,6 +117,74 @@ class _HomeContent extends StatelessWidget {
   /// just the city part.
   static String _cityFromLabel(String label) => label.split(',').first.trim();
 
+  Future<void> _useMyLocation(BuildContext context) async {
+    final serviceEnabled = await AppLocationService.isServiceEnabled();
+    if (!serviceEnabled) {
+      if (!context.mounted) {
+        return;
+      }
+      _showLocationRequiredDialog(
+        context,
+        message: 'Turn on location services on your device to use this.',
+      );
+      return;
+    }
+
+    final granted = await AppPermissionService.requestLocationPermission();
+    if (!granted) {
+      if (!context.mounted) {
+        return;
+      }
+      _showLocationRequiredDialog(
+        context,
+        message:
+            'Aoreli needs location access to show weather for where '
+            "you are. You'll need to grant it from Settings.",
+      );
+      return;
+    }
+
+    try {
+      final position = await AppLocationService.getCurrentPosition();
+      onSearch('${position.latitude},${position.longitude}');
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Couldn't get your location. Please try again."),
+        ),
+      );
+    }
+  }
+
+  void _showLocationRequiredDialog(
+    BuildContext context, {
+    required String message,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Location access required'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              AppPermissionService.openSettings();
+            },
+            child: const Text('Give Access'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -184,13 +254,7 @@ class _HomeContent extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Location search isn't available yet."),
-                    ),
-                  );
-                },
+                onPressed: () => _useMyLocation(context),
                 icon: const Icon(Icons.near_me_outlined, size: 18),
                 label: const Text('Use my location'),
               ),
@@ -244,11 +308,7 @@ class _RecentSearchTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              const Icon(
-                Icons.history,
-                size: 18,
-                color: AppColors.outline,
-              ),
+              const Icon(Icons.history, size: 18, color: AppColors.outline),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -491,10 +551,7 @@ class _ResultSkeleton extends StatelessWidget {
                   const Row(
                     children: [
                       Expanded(
-                        child: _DetailItem(
-                          label: 'CLOUD COVER',
-                          value: '0%',
-                        ),
+                        child: _DetailItem(label: 'CLOUD COVER', value: '0%'),
                       ),
                       Expanded(
                         child: _DetailItem(label: 'RAIN CHANCE', value: '1%'),
@@ -505,16 +562,10 @@ class _ResultSkeleton extends StatelessWidget {
                   const Row(
                     children: [
                       Expanded(
-                        child: _DetailItem(
-                          label: 'HEAT INDEX',
-                          value: '39°C',
-                        ),
+                        child: _DetailItem(label: 'HEAT INDEX', value: '39°C'),
                       ),
                       Expanded(
-                        child: _DetailItem(
-                          label: 'WIND CHILL',
-                          value: '39°C',
-                        ),
+                        child: _DetailItem(label: 'WIND CHILL', value: '39°C'),
                       ),
                     ],
                   ),
@@ -522,10 +573,7 @@ class _ResultSkeleton extends StatelessWidget {
                   const Row(
                     children: [
                       Expanded(
-                        child: _DetailItem(
-                          label: 'VISIBILITY',
-                          value: '10 km',
-                        ),
+                        child: _DetailItem(label: 'VISIBILITY', value: '10 km'),
                       ),
                       Expanded(
                         child: _DetailItem(label: 'DEW POINT', value: '9°C'),
@@ -722,10 +770,7 @@ class _WeatherResultContent extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                _UnitToggle(
-                  isFahrenheit: isFahrenheit,
-                  onToggle: onToggleUnit,
-                ),
+                _UnitToggle(isFahrenheit: isFahrenheit, onToggle: onToggleUnit),
               ],
             ),
             const SizedBox(height: 16),
@@ -780,8 +825,7 @@ class _WeatherResultContent extends StatelessWidget {
                   imageUrl: weather.conditionIconUrl,
                   width: 24,
                   height: 24,
-                  errorWidget: (context, url, error) =>
-                      const SizedBox.shrink(),
+                  errorWidget: (context, url, error) => const SizedBox.shrink(),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -1062,9 +1106,7 @@ class _StatCard extends StatelessWidget {
             if (valueSuffix != null)
               Text(
                 valueSuffix!,
-                style: textTheme.labelSmall?.copyWith(
-                  color: AppColors.outline,
-                ),
+                style: textTheme.labelSmall?.copyWith(color: AppColors.outline),
               ),
             const SizedBox(height: 4),
             Text(
