@@ -48,7 +48,6 @@ enum WeatherCondition {
 }
 
 /// Single source of truth for colors, extracted from the Figma design
-/// (see `ui/*.svg` exports).
 class AppColors {
   AppColors._();
 
@@ -128,7 +127,6 @@ class AppColors {
   ];
 
   /// Returns the background gradient stops for a given [WeatherCondition],
-  /// matching the "Current Weather" screens in the Figma design.
   static List<Color> backgroundGradient(WeatherCondition condition) {
     switch (condition) {
       case WeatherCondition.clear:

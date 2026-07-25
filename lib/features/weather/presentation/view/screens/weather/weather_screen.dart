@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../../../core/config/themes/app_colors.dart';
+import '../../../../../../core/helpers/app_navigator.dart';
 import '../../../../../../core/helpers/location_service.dart';
 import '../../../../../../core/helpers/permission_service.dart';
 import '../../../../data/models/weather_model.dart';
@@ -170,12 +171,12 @@ class _HomeContent extends StatelessWidget {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
+            onPressed: () => AppNavigator.pop(context: dialogContext),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.of(dialogContext).pop();
+              AppNavigator.pop(context: dialogContext);
               AppPermissionService.openSettings();
             },
             child: const Text('Give Access'),
