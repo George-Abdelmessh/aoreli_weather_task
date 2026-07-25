@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:aoreli_weather/core/utils/screen_size.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -17,12 +18,23 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  static const _gradientFadeDelay = Duration(seconds: 1);
+  static const _gradientFadeDuration = Duration(milliseconds: 800);
+
   Timer? _navigationTimer;
+  Timer? _gradientFadeTimer;
+  bool _showGradient = false;
 
   @override
   void initState() {
     super.initState();
     _navigationTimer = Timer(const Duration(seconds: 5), _navigateToHome);
+    _gradientFadeTimer = Timer(_gradientFadeDelay, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _showGradient = true);
+    });
   }
 
   void _navigateToHome() {
@@ -41,6 +53,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void dispose() {
     _navigationTimer?.cancel();
+    _gradientFadeTimer?.cancel();
     super.dispose();
   }
 
@@ -49,39 +62,50 @@ class _SplashScreenState extends State<SplashScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: AppColors.splashGradient,
-          ),
-        ),
-        child: Align(
-          alignment: const Alignment(0, -0.1),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'AORELI',
-                style: textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                  color: AppColors.onSurface,
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: _showGradient ? 1 : 0,
+              duration: _gradientFadeDuration,
+              curve: Curves.easeIn,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: AppColors.splashGradient,
+                  ),
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'a weather app',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'AORELI',
+                  style: textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                    fontSize: ScreenSize.fontScale(context, 60),
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'a weather app',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: ScreenSize.fontScale(context, 16),
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

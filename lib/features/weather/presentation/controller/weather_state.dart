@@ -13,8 +13,8 @@ sealed class WeatherState extends Equatable {
   }) = WeatherSuccess;
   const factory WeatherState.error(String message) = WeatherError;
 
-  /// Mirrors the freezed-generated `when` this state used to have, so
-  /// existing call sites don't need to change.
+  /// Pattern-matches over the possible states, similar to a `switch`
+  /// expression, so call sites can handle each case explicitly.
   T when<T>({
     required T Function() initial,
     required T Function() loading,
